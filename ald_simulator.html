@@ -1,0 +1,1217 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HfOx ALD 시뮬레이터</title>
+<style>
+:root{
+  --bg:#f4f6f8;--panel:#fff;--ink:#141820;--ink2:#4a525e;--ink3:#868d98;--line:#e1e5ea;
+  --accent:#0d7f74;--on-accent:#fff;--warn:#a05f00;--crit:#c23b3a;--good:#1d7f47;
+  --sans:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif;
+  --mono:ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans)}
+header{padding:18px 20px 10px;max-width:1500px;margin:0 auto}
+h1{margin:0;font-size:1.45rem}
+.sub{margin:2px 0 0;color:var(--ink2);font-size:.9rem}
+.wrap{max-width:1500px;margin:0 auto;padding:0 20px 40px;display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+aside.card{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+h2:first-child{margin-top:0}
+h3{margin:0 0 8px;font-size:1rem}
+label.f{display:block;font-weight:500;font-size:.88rem;margin:10px 0 2px}
+label.f output{float:right;font-family:var(--mono);color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,input[type=number],input[type=text],textarea{font:inherit;width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+input[type=number]{font-family:var(--mono)}
+.radio{display:flex;flex-direction:column;gap:4px}
+.radio label{display:flex;gap:6px;align-items:center;font-size:.9rem}
+.chk{display:flex;gap:6px;align-items:center;font-size:.88rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:500;font-size:.9rem;margin:6px 0}
+.prm{margin:8px 0}
+.prm .lab{font-size:.82rem;color:var(--ink2)}
+.prm .hint{font-size:.72rem;color:var(--ink3)}
+button{font:inherit;font-size:.88rem;padding:7px 14px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+button.link{border:0;background:none;padding:0;color:var(--ink2);text-decoration:underline;font-size:.82rem}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{border-radius:999px}
+.tabs button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.tab{display:none;flex-direction:column;gap:16px}
+.tab.on{display:flex}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.kpi{background:var(--panel);padding:10px 14px}
+.kpi .k{font-size:.76rem;color:var(--ink2)}
+.kpi .v{font-family:var(--mono);font-size:1.35rem;font-variant-numeric:tabular-nums}
+.row{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+table{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-numeric:tabular-nums}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--ink3);font-weight:500;font-size:.76rem}
+th:first-child,td:first-child{text-align:left}
+td.num{font-family:var(--mono)}
+.tblw{overflow-x:auto}
+.note{color:var(--ink2);font-size:.86rem;margin:0}
+.muted{color:var(--ink3);font-size:.8rem}
+.msg{padding:8px 12px;border-radius:7px;background:#e8f5f3;color:var(--accent);font-size:.86rem}
+.msg.err{background:#fbeaea;color:var(--crit)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+textarea{font-family:var(--mono);font-size:.8rem;height:260px;resize:vertical}
+.plot{width:100%;min-height:300px}
+.invgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:10px}
+.invgrid fieldset{border:0;margin:0;padding:0;min-width:0}
+.invgrid legend{font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);padding:0 0 6px;border-bottom:1px solid var(--line);width:100%;margin-bottom:4px}
+.pair{display:flex;gap:6px;align-items:center}.pair input{min-width:0}
+.badge.good{color:var(--good);border-color:currentColor}.badge.warn{color:var(--warn);border-color:currentColor}
+@media (max-width:980px){.invgrid{grid-template-columns:minmax(0,1fr)}}
+.eq{font-family:var(--mono);font-size:.82rem;color:var(--ink2);line-height:1.9}
+.badge{display:inline-block;font-size:.72rem;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--ink2)}
+.plot{position:relative}
+.plot canvas{display:block;touch-action:none}
+.ctip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:.8rem;line-height:1.45;box-shadow:0 4px 14px rgba(0,0,0,.12);white-space:nowrap;z-index:5}
+.ctip .muted{font-size:.75rem}
+.sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+@media (max-width:980px){.wrap{grid-template-columns:minmax(0,1fr)}aside.card{position:static;max-height:none}.row,.row2{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>HfOx ALD 웨이퍼 두께 시뮬레이터</h1>
+  <p class="sub">TDMAH 전구체 · Cross-flow 반응기 · 9-point 측정 · 파라미터는 논문 그림 판독 데이터로 피팅한 값 (사전 이론값 아님)</p>
+</header>
+
+<div class="wrap">
+<aside class="card" aria-label="공정 조건">
+  <h2>모델</h2>
+  <div class="radio" id="model-radio"></div>
+  <h2>공정 조건</h2>
+  <label class="f" for="jump">측정 데이터가 있는 조건으로 이동</label>
+  <select id="jump"></select>
+  <label class="f" for="Tp">전구체(캐니스터) 온도 <output id="o-Tp"></output></label>
+  <input type="range" id="Tp" min="50" max="80" step="0.5" value="55">
+  <label class="f" for="T">증착 온도 <output id="o-T"></output></label>
+  <input type="range" id="T" min="100" max="250" step="1" value="150">
+  <label class="f" for="dose">Dose 배율 (논문 조건 = 1) <output id="o-dose"></output></label>
+  <input type="range" id="dose" min="-1" max="1" step="0.01" value="0">
+  <label class="f" for="cyc">사이클 배율 (논문 = 1) <output id="o-cyc"></output></label>
+  <input type="range" id="cyc" min="-0.523" max="0.477" step="0.001" value="0">
+  <p class="muted" style="margin:2px 0 0">ALD 선형 성장 가정: 두께 ∝ 사이클 수. 1이 아니면 실측과의 비교는 참고용입니다.</p>
+  <h2>모델 파라미터</h2>
+  <details id="pdetails"><summary id="psummary"></summary><div id="params"></div>
+    <button class="link" id="reset-params" type="button">사전 피팅값으로 되돌리기</button>
+  </details>
+  <h2>표시</h2>
+  <label class="chk"><input type="checkbox" id="fixscale" checked> 논문 색 범위 고정 (3–18 nm)</label>
+  <label class="chk"><input type="checkbox" id="showfront" checked> 포화 front 선 표시</label>
+</aside>
+
+<main>
+  <div class="tabs" role="tablist" id="tabs"></div>
+
+  <!-- 웨이퍼 맵 -->
+  <section class="tab on" id="tab-map">
+    <div class="kpis" id="kpis"></div>
+    <div class="row">
+      <div class="card"><div id="pl-map" class="plot" style="height:640px"></div></div>
+      <div class="card">
+        <h3>9-point 비교</h3>
+        <div class="tblw"><table id="tbl9"></table></div>
+        <p class="note" id="nodata" style="margin-top:10px"></p>
+        <p class="note" style="margin-top:12px"><b>읽는 법</b> · 저온·저증기압(전구체 55 °C)에서는 흡착 자리가 많아 한 펄스로 웨이퍼 전체를 채우지 못하고 포화 front가 Inlet 쪽에 머뭅니다. 온도를 올리면 자리 수가 줄어 front가 하류로 밀려납니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 역설계 -->
+  <section class="tab" id="tab-inv">
+    <div class="card">
+      <h3>목표 사양 → 공정 조건 추천</h3>
+      <p class="note">원하는 두께·균일도를 넣으면, 모델로 후보 조건을 촘촘한 격자로 <b>전부</b> 계산해 조건을 만족하는 것 중 목표에 가장 좋은 조건을 추천합니다. 모델 계산이 빨라 전수 탐색이 가능하므로, 격자 간격(증착 1 °C, 전구체 0.5 °C) 안에서는 최적이 보장됩니다.</p>
+      <div class="invgrid">
+        <fieldset><legend>목표 사양</legend>
+          <label class="f">목표 평균 두께 [nm]<input type="number" id="inv-target" value="12" step="0.5" min="0.5"></label>
+          <label class="f">허용 오차 ± [nm]<input type="number" id="inv-tol" value="0.5" step="0.1" min="0.01"></label>
+          <label class="f">최대 불균일도 1σ [%]<input type="number" id="inv-numax" value="3" step="0.5" min="0"></label>
+          <label class="f">최소 포화도 θ <span class="muted">(1 = 완전 포화)</span><input type="number" id="inv-thmin" value="0.9" step="0.05" min="0" max="1"></label>
+        </fieldset>
+        <fieldset><legend>평가 방식</legend>
+          <label class="f">최적화 목표<select id="inv-obj"><option value="nu">불균일도 최소</option><option value="usage">전구체 사용량 최소</option><option value="temp">증착 온도 최소 (열 예산)</option></select></label>
+          <label class="f">평가 영역<select id="inv-region"><option value="9pt">9-point (측정 위치)</option><option value="wafer">웨이퍼 전체 (가장자리는 외삽)</option></select></label>
+          <label class="f">모델 밖 편차 [%]<input type="number" id="inv-floor" step="0.1" min="0"></label>
+          <p class="muted" id="inv-floor-hint"></p>
+        </fieldset>
+        <fieldset><legend>탐색 범위</legend>
+          <label class="f">증착 온도 [°C]<span class="pair"><input type="number" id="inv-T0" value="100"> ~ <input type="number" id="inv-T1" value="250"></span></label>
+          <label class="f">전구체 온도 [°C]<span class="pair"><input type="number" id="inv-P0" value="50"> ~ <input type="number" id="inv-P1" value="80"></span></label>
+          <label class="chk"><input type="checkbox" id="inv-dosefree"> dose 조정 허용</label>
+          <span class="pair"><input type="number" id="inv-D0" value="0.3" step="0.1"> ~ <input type="number" id="inv-D1" value="3" step="0.1"></span>
+          <label class="chk"><input type="checkbox" id="inv-cycfree"> 사이클 수 조정 허용 (두께는 사이클로 맞춤)</label>
+          <span class="pair"><input type="number" id="inv-C0" value="0.3" step="0.1"> ~ <input type="number" id="inv-C1" value="3" step="0.1"></span>
+        </fieldset>
+      </div>
+      <div class="actions" style="margin-top:14px"><button class="primary" id="btn-inv" type="button">추천 조건 찾기</button><span id="inv-msg"></span></div>
+    </div>
+    <div id="inv-out" hidden>
+      <div class="card">
+        <h3>추천 조건</h3>
+        <div class="tblw"><table id="tbl-inv"></table></div>
+        <p class="muted" style="margin-top:8px">불균일도 = √(모델 예측² + 모델 밖 편차²). 전구체 사용량 = dose × 증기압비(전구체 온도) × 사이클, 논문 조건(전구체 55 °C, dose 1, 사이클 1) = 1. '적용'을 누르면 웨이퍼 맵 탭에서 그 조건을 확인할 수 있습니다.</p>
+      </div>
+      <div class="row2">
+        <div class="card"><h3>균일도 vs 전구체 사용량</h3><p class="muted">두께·포화도 조건을 만족하는 후보 전체(회색)와 Pareto 최적선. 왼쪽 아래로 갈수록 좋습니다.</p><div id="pl-pareto" class="plot" style="height:400px"></div></div>
+        <div class="card"><h3 id="t-feas">가능 영역</h3><p class="muted">색 = 불균일도 1σ, 회색 = 조건 불만족, 검은 점 = 9점 맵이 측정된 조건, 숫자 = 추천 순위</p><div id="pl-feas" class="plot" style="height:400px"></div></div>
+      </div>
+      <div class="card">
+        <h3>해석할 때 주의할 점</h3>
+        <ul class="note" id="inv-notes"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 공정 곡선 -->
+  <section class="tab" id="tab-curve">
+    <div class="row2">
+      <div class="card"><h3 id="t-cT"></h3><div id="pl-cT" class="plot" style="height:430px"></div></div>
+      <div class="card"><h3 id="t-cTp"></h3><div id="pl-cTp" class="plot" style="height:430px"></div></div>
+    </div>
+    <p class="muted">실선 = 모델, 빈 원 = 측정 데이터 (현재 조건과 같은 전구체/증착 온도, 같은 지점일 때만 표시)</p>
+  </section>
+
+  <!-- 피팅 · 검증 -->
+  <section class="tab" id="tab-fit">
+    <div class="card">
+      <p class="note">식의 <b>형태</b>는 물리(Langmuir 흡착, 유선 방향 질량수지, Arrhenius, Clausius–Clapeyron)에서 왔지만, 파라미터 <b>값</b>은 모두 측정 데이터에 맞춘 것입니다. 사전 이론값과의 비교는 아직 들어 있지 않습니다.</p>
+      <div class="actions" style="margin-top:12px">
+        <button class="primary" id="btn-fit" type="button"></button>
+        <span id="fit-msg"></span>
+      </div>
+      <div class="tblw" style="margin-top:12px"><table id="tbl-params"></table></div>
+    </div>
+    <div class="card">
+      <h3>모델 비교</h3>
+      <div class="tblw"><table id="tbl-compare"></table></div>
+      <div class="actions" style="margin-top:10px">
+        <button id="btn-cv" type="button">증착 온도별 Leave-one-out 교차검증 실행</button>
+        <span class="muted">각 증착 온도의 데이터를 통째로 빼고 나머지로 피팅한 뒤, 빠진 온도를 예측한 RMSE</span>
+      </div>
+      <div class="tblw" style="margin-top:10px"><table id="tbl-cv"></table></div>
+    </div>
+    <div class="card"><h3>예측 vs 실측</h3><div id="pl-parity" class="plot" style="height:460px"></div></div>
+  </section>
+
+  <!-- Zernike -->
+  <section class="tab" id="tab-zern">
+    <div class="card">
+      <p class="note"><b>A. 모델 맵의 Zernike 분해</b> · 3단계에서 Z-Reg가 예측할 저차 구조가 어떤 모드로 이루어지는지 확인합니다.</p>
+      <label class="f" for="zorder" style="max-width:320px">최대 차수 <output id="o-zorder"></output></label>
+      <input type="range" id="zorder" min="1" max="8" step="1" value="6" style="max-width:320px">
+      <div class="row">
+        <div id="pl-zbar" class="plot" style="height:360px"></div>
+        <div><div class="kpi" style="padding:0 0 6px"><span class="k" id="zerr-k"></span><div class="v" id="zerr"></div></div>
+          <div id="pl-zerr" class="plot" style="height:260px;min-height:0"></div>
+          <p class="muted">초록 = 축대칭(m=0), 주황 = 방위각 성분</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="note"><b>B. 실측 잔차의 저차 Zernike 분해</b> · 9점으로는 2차(6개 모드)까지만 안정적으로 추정됩니다.</p>
+      <div class="row" id="zres-wrap" style="margin-top:10px">
+        <div><div class="tblw"><table id="tbl-zres"></table></div><p class="muted" id="zres-left"></p></div>
+        <div id="pl-zres" class="plot" style="height:380px"></div>
+      </div>
+      <p class="note" id="zres-none"></p>
+      <p class="muted">3단계 아이디어: 공정 조건 → 이 6개 잔차 계수를 예측하는 작은 회귀 모델(Z-Reg)을 학습해 물리 모델에 더합니다. 측정점이 없는 가장자리(웨이퍼 중심에서 3 cm 바깥)는 외삽입니다.</p>
+    </div>
+  </section>
+
+  <!-- 데이터 -->
+  <section class="tab" id="tab-data">
+    <div class="card">
+      <h3>측정 데이터</h3>
+      <p class="note">논문 판독값이 들어 있습니다. 아래 CSV를 직접 고치거나 행을 추가한 뒤 <b>적용</b>을 누르세요. 열: <code>source,Tp,T,x,y,t_ox</code> (전구체 °C, 증착 °C, 좌표 cm — Gas inlet 원점·흐름 방향 +y, 두께 nm)</p>
+      <textarea id="csv" spellcheck="false" style="margin-top:10px"></textarea>
+      <div class="actions" style="margin-top:10px">
+        <button class="primary" id="btn-apply" type="button">적용</button>
+        <label class="actions"><span class="badge">CSV 추가</span><input type="file" id="upload" accept=".csv,text/csv"></label>
+        <button id="btn-dl" type="button">CSV 내려받기</button>
+        <button id="btn-reset-data" type="button">논문 데이터로 초기화</button>
+        <span id="data-msg"></span>
+      </div>
+      <p class="muted" id="data-info"></p>
+    </div>
+    <div class="card">
+      <h3>3단계 학습용 합성 데이터셋 생성</h3>
+      <p class="note">현재 모델·파라미터로 공정 조건을 라틴 하이퍼큐브 샘플링해 2D 두께 맵을 만듭니다. 결과는 <code>.npz</code> (cond, cond_names, maps, mask, x_cm, y_cm, params, param_names) — <code>np.load()</code>로 바로 읽힙니다.</p>
+      <div class="row2" style="margin-top:8px">
+        <div>
+          <label class="f">샘플 수 <input type="number" id="ds-n" value="200" min="10" max="2000" step="10"></label>
+          <label class="f">해상도 <select id="ds-res"><option>32</option><option>64</option><option selected>128</option><option>256</option></select></label>
+          <label class="f">seed <input type="number" id="ds-seed" value="0" min="0" step="1"></label>
+        </div>
+        <div>
+          <label class="f">증착 온도 범위 [°C] <span class="actions"><input type="number" id="ds-T0" value="100" style="width:45%"> ~ <input type="number" id="ds-T1" value="250" style="width:45%"></span></label>
+          <label class="f">전구체 온도 범위 [°C] <span class="actions"><input type="number" id="ds-P0" value="55" style="width:45%"> ~ <input type="number" id="ds-P1" value="75" style="width:45%"></span></label>
+          <label class="f">Dose 배율 범위 <span class="actions"><input type="number" id="ds-D0" value="0.5" step="0.1" style="width:45%"> ~ <input type="number" id="ds-D1" value="2" step="0.1" style="width:45%"></span></label>
+        </div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="primary" id="btn-ds" type="button">데이터셋 생성 · 내려받기</button><span id="ds-msg"></span></div>
+    </div>
+  </section>
+
+  <details class="card" style="margin-top:16px">
+    <summary>모델 식과 가정</summary>
+    <div class="eq">
+      <p><b>포화 front + 흐름 jet</b> (유선 x를 따라 Inlet에서 y만큼 떨어진 지점)</p>
+      <p>H_sat(T) = H₀ · exp[−b (T − 100)],&nbsp;&nbsp; a(T) = a₀ · exp[−Eₐ/R · (1/T − 1/373)]</p>
+      <p>L_f(x) = Λ · P_v(T_p)/P_v(55 °C) · H₀/H_sat(T) · dose · exp[−(x − x_s)² / 2w²]</p>
+      <p>dG/dy = −n_s (1 − e^(−aG/n_s)) &nbsp;⇒&nbsp; θ = (e^(aL_f) − 1) e^(−ay) / [1 + (e^(aL_f) − 1) e^(−ay)]</p>
+      <p>t_ox = H_sat(T) · [f₀ + (1 − f₀) θ]</p>
+      <p><b>기존 모델</b>: P(d) = P₀ exp(−d/L_dep), θ = 1 − exp(−k · P_v · dose · P(d)/P₀ · H₀/H_sat), d = Inlet 거리</p>
+    </div>
+    <ul class="note">
+      <li>θ는 front 위치 y_f ≈ L_f를 중심으로 한 로지스틱 함수이고, a가 작은 극한에서는 기존 exp(−d/L_dep) 모델로 돌아갑니다.</li>
+      <li>x_s, w, f₀는 데이터 모양을 보고 넣은 경험항입니다.</li>
+      <li>모든 파라미터는 논문 그림 판독 데이터(Fig. 1a, 1b 전구체 55 °C 행)로 피팅한 값이며, 공정 조건으로부터 계산한 사전 이론값이 아닙니다. 판독 오차가 있을 수 있습니다.</li>
+      <li>9점은 웨이퍼 중심에서 반경 3 cm 안쪽에만 있어 가장자리 예측은 외삽입니다.</li>
+    </ul>
+  </details>
+</main>
+</div>
+
+<script>
+(() => {
+'use strict';
+// =================================================================== 모델
+const R = 8.314;
+const PTS = [[0,10.5],[-1.5,9],[1.5,9],[-3,7.5],[0,7.5],[3,7.5],[-1.5,6],[1.5,6],[0,4.5]];
+const PT_NAMES = ['P1 원거리','P2 좌상','P3 우상','P4 좌','P5 중심','P6 우','P7 좌하','P8 우하','P9 근거리'];
+const WC = [0, 7.5], WR = 4.5;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const hsat = (T, H0, b) => H0 * Math.exp(-b * (T - 100));
+const pvr = (Tp, dH) => Math.exp(-dH * 1e3 / R * (1 / (Tp + 273.15) - 1 / 328.15));
+const arr = (T, E) => Math.exp(-E * 1e3 / R * (1 / (T + 273.15) - 1 / 373.15));
+
+function frontModel(p, x, y, T, Tp, dose) {
+  const h = hsat(T, p.H0, p.b), a = p.a0 * arr(T, p.Ea);
+  const Lf = p.Lam * pvr(Tp, p.dH) * (p.H0 / h) * dose * Math.exp(-((x - p.xs) ** 2) / (2 * p.w * p.w));
+  const u0 = clamp(a * Lf, 1e-9, 60);
+  const E = Math.expm1(u0) * Math.exp(-a * y);
+  const th = E / (1 + E);
+  return [h * (p.f0 + (1 - p.f0) * th), th, h];
+}
+function oldModel(p, x, y, T, Tp, dose) {
+  const h = hsat(T, p.H0, p.b), k = p.k0 * arr(T, p.Ea), d = Math.hypot(x, y);
+  const th = 1 - Math.exp(-k * pvr(Tp, p.dH) * dose * Math.exp(-d / p.L) * (p.H0 / h));
+  return [h * th, th, h];
+}
+function frontLine(p, T, Tp, dose, x) {
+  const h = hsat(T, p.H0, p.b), a = p.a0 * arr(T, p.Ea);
+  const Lf = p.Lam * pvr(Tp, p.dH) * (p.H0 / h) * dose * Math.exp(-((x - p.xs) ** 2) / (2 * p.w * p.w));
+  const u0 = clamp(a * Lf, 1e-9, 60);
+  return Math.log(Math.expm1(u0)) / a;
+}
+// [키, 기본값, 하한, 상한, 단위, 이름, 설명, 성격]
+const MODELS = {
+  front: { name: '포화 front + 흐름 jet', fn: frontModel, spec: [
+    ['H0', 16.3827, 5, 30, 'nm', '100 °C 포화 두께 H₀', '논문 사이클 수 기준 총 두께', '물리 형태 + 피팅'],
+    ['b', 0.00317399, 0, 0.01, '1/K', '포화 두께 감소 계수 b', 'H_sat(T) = H₀·exp(−b(T−100))', '경험식 + 피팅'],
+    ['Lam', 7.64757, 0.5, 80, 'cm', 'front 길이 Λ (전구체 55 °C)', '공급 분자 수 / 흡착 자리', '물리 형태 + 피팅'],
+    ['a0', 0.795441, 1e-3, 50, '1/cm', '흡착 속도 a (100 °C)', 'front의 날카로움. 작을수록 exp 고갈에 가까움', '물리 형태 + 피팅'],
+    ['Ea', 15.6545, -100, 200, 'kJ/mol', '흡착 활성화 에너지 Eₐ', 'a(T)의 Arrhenius 온도 의존', '물리 형태 + 피팅'],
+    ['dH', 31.7117, 0, 300, 'kJ/mol', '증발 엔탈피 ΔH', '증기압의 Clausius–Clapeyron 기울기', '물리 형태 + 피팅'],
+    ['xs', -0.253549, -5, 5, 'cm', 'jet 중심 x_s', '흐름의 좌우 치우침', '경험항'],
+    ['w', 4.62358, 0.5, 30, 'cm', 'jet 폭 w', '유선별 공급량의 가우시안 폭', '경험항'],
+    ['f0', 0.0451213, 0, 0.9, '', '바닥 성장 비율 f₀', 'front 밖에서의 성장', '경험항'],
+  ]},
+  old: { name: '기존 모델 (exp 고갈)', fn: oldModel, spec: [
+    ['H0', 15.1155, 5, 30, 'nm', '100 °C 포화 두께 H₀', '', '경험식 + 피팅'],
+    ['b', 0.00218012, 0, 0.01, '1/K', '포화 두께 감소 계수 b', '', '경험식 + 피팅'],
+    ['k0', 64.3773, 1e-3, 1e4, '', '흡착 노출 계수 k (100 °C)', '', '물리 형태 + 피팅'],
+    ['Ea', 28.1623, -100, 200, 'kJ/mol', '활성화 에너지 Eₐ', '', '물리 형태 + 피팅'],
+    ['dH', 290.941, 0, 300, 'kJ/mol', '증발 엔탈피 ΔH', '', '물리 형태 + 피팅'],
+    ['L', 1.5601, 0.5, 100, 'cm', '고갈 길이 L_dep', 'P(d) = P₀·exp(−d/L_dep)', '물리 형태 + 피팅'],
+  ]},
+};
+const defaults = key => Object.fromEntries(MODELS[key].spec.map(s => [s[0], s[1]]));
+
+// =================================================================== 논문 데이터 (그림 판독값)
+const FIG1B_55 = {
+  100: [3.2,3.1,2.8,5.2,8.4,5.3,15.2,12.2,15.5], 125: [3.3,3.5,2.7,5.2,7.7,4.2,14.3,9.8,14.3],
+  150: [3.4,3.3,2.8,7.5,13.1,6.5,13.6,13.5,13.8], 175: [4.4,9.2,6.8,10.4,12.3,5.8,12.4,12.3,12.3],
+  200: [8.0,10.6,11.0,12.0,12.4,11.1,12.4,12.2,12.4], 225: [10.8,11.4,11.3,11.1,11.2,10.8,11.3,11.2,11.2],
+  250: [9.8,11.7,11.5,10.7,11.1,10.6,11.0,10.9,11.1] };
+const FIG1A_P75 = {100:15.3,125:14.7,150:13.3,175:12.9,200:11.8,225:11.4,250:10.5};
+const FIG1A_T100 = {55:7.0,60:14.0,65:14.6,70:15.5,75:15.3};
+function paperData() {
+  const rows = [];
+  for (const [T, v] of Object.entries(FIG1B_55)) v.forEach((t, i) => rows.push({ src:'Fig1b', Tp:55, T:+T, x:PTS[i][0], y:PTS[i][1], t }));
+  for (const [T, t] of Object.entries(FIG1A_P75)) rows.push({ src:'Fig1a-left', Tp:75, T:+T, x:0, y:7.5, t });
+  for (const [Tp, t] of Object.entries(FIG1A_T100)) rows.push({ src:'Fig1a-right', Tp:+Tp, T:100, x:0, y:7.5, t });
+  return rows;
+}
+const toCSV = rows => 'source,Tp,T,x,y,t_ox\n' + rows.map(r => [r.src, r.Tp, r.T, r.x, r.y, r.t].join(',')).join('\n');
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return { rows: [], bad: 0 };
+  const head = lines[0].toLowerCase().split(',').map(s => s.trim());
+  const hasHead = head.includes('t_ox');
+  const idx = hasHead ? ['source','tp','t','x','y','t_ox'].map(c => head.indexOf(c)) : [0,1,2,3,4,5];
+  const rows = []; let bad = 0;
+  for (const l of lines.slice(hasHead ? 1 : 0)) {
+    const c = l.split(',').map(s => s.trim());
+    const r = { src: idx[0] >= 0 ? (c[idx[0]] || 'user') : 'user', Tp:+c[idx[1]], T:+c[idx[2]], x:+c[idx[3]], y:+c[idx[4]], t:+c[idx[5]] };
+    if ([r.Tp, r.T, r.x, r.y, r.t].every(Number.isFinite)) rows.push(r); else bad++;
+  }
+  return { rows, bad };
+}
+
+// =================================================================== 수치 루틴
+function solve(A, b) {               // 가우스 소거 (부분 피벗)
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    const d = M[c][c]; if (Math.abs(d) < 1e-300) return null;
+    for (let r = c + 1; r < n; r++) { const f = M[r][c] / d; if (f) for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  const x = Array(n).fill(0);
+  for (let r = n - 1; r >= 0; r--) { let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; }
+  return x;
+}
+const predictRows = (key, p, rows) => rows.map(r => MODELS[key].fn(p, r.x, r.y, r.T, r.Tp, 1)[0]);
+function rmseOf(key, p, rows) {
+  if (!rows.length) return NaN;
+  const pr = predictRows(key, p, rows);
+  return Math.sqrt(rows.reduce((s, r, i) => s + (pr[i] - r.t) ** 2, 0) / rows.length);
+}
+// 경계 조건이 있는 Levenberg–Marquardt
+function fit(key, rows, p0) {
+  const spec = MODELS[key].spec, n = spec.length;
+  const lo = spec.map(s => s[2]), hi = spec.map(s => s[3]);
+  const toP = x => Object.fromEntries(spec.map((s, i) => [s[0], x[i]]));
+  const res = x => { const p = toP(x); return rows.map(r => MODELS[key].fn(p, r.x, r.y, r.T, r.Tp, 1)[0] - r.t); };
+  const ss = r => r.reduce((s, v) => s + v * v, 0);
+  let x = spec.map((s, i) => clamp(p0[s[0]], lo[i], hi[i]));
+  let r = res(x), cost = ss(r), lam = 1e-3;
+  for (let it = 0; it < 400; it++) {
+    const J = rows.map(() => Array(n).fill(0));
+    for (let j = 0; j < n; j++) {
+      let h = 1e-6 * Math.max(Math.abs(x[j]), 1e-3); if (x[j] + h > hi[j]) h = -h;
+      const xj = x.slice(); xj[j] += h; const rj = res(xj);
+      for (let i = 0; i < rows.length; i++) J[i][j] = (rj[i] - r[i]) / h;
+    }
+    const A = Array.from({ length: n }, () => Array(n).fill(0)), g = Array(n).fill(0);
+    for (let i = 0; i < rows.length; i++) for (let a = 0; a < n; a++) {
+      g[a] += J[i][a] * r[i];
+      for (let b = 0; b <= a; b++) A[a][b] += J[i][a] * J[i][b];
+    }
+    for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) A[a][b] = A[b][a];
+    let ok = false;
+    for (let k = 0; k < 12; k++) {
+      const Al = A.map((row, a) => row.map((v, b) => a === b ? v * (1 + lam) + 1e-12 : v));
+      const d = solve(Al, g.map(v => -v));
+      if (d) {
+        const xn = x.map((v, i) => clamp(v + d[i], lo[i], hi[i]));
+        const rn = res(xn), cn = ss(rn);
+        if (cn < cost) { const imp = (cost - cn) / cost; x = xn; r = rn; cost = cn; lam = Math.max(lam / 3, 1e-9); ok = imp > 1e-11; break; }
+      }
+      lam *= 4;
+    }
+    if (!ok) break;
+  }
+  return { p: toP(x), rmse: Math.sqrt(cost / rows.length) };
+}
+function lotoCV(key, rows) {
+  const Ts = [...new Set(rows.map(r => r.T))].sort((a, b) => a - b), out = [];
+  for (const T of Ts) {
+    const te = rows.filter(r => r.T === T), tr = rows.filter(r => r.T !== T);
+    if (!te.length || tr.length < MODELS[key].spec.length + 2) continue;
+    const f = fit(key, tr, defaults(key));
+    out.push({ T, n: te.length, rmse: rmseOf(key, f.p, te) });
+  }
+  return out;
+}
+// ---- Zernike
+const fact = n => { let f = 1; for (let i = 2; i <= n; i++) f *= i; return f; };
+const zModes = o => { const m = []; for (let n = 0; n <= o; n++) for (let k = -n; k <= n; k += 2) m.push([n, k]); return m; };
+function zern(n, m, rho, phi) {
+  const am = Math.abs(m); let Rr = 0;
+  for (let k = 0; k <= (n - am) / 2; k++)
+    Rr += (-1) ** k * fact(n - k) / (fact(k) * fact((n + am) / 2 - k) * fact((n - am) / 2 - k)) * rho ** (n - 2 * k);
+  return Rr * (m >= 0 ? Math.cos(m * phi) : Math.sin(-m * phi));
+}
+const polar = (x, y) => [Math.hypot(x - WC[0], y - WC[1]) / WR, Math.atan2(y - WC[1], x - WC[0])];
+function zFit(xs, ys, vals, order) {
+  const modes = zModes(order), n = modes.length;
+  const A = Array.from({ length: n }, () => Array(n).fill(0)), b = Array(n).fill(0);
+  for (let i = 0; i < xs.length; i++) {
+    const [rho, phi] = polar(xs[i], ys[i]); const z = modes.map(([nn, mm]) => zern(nn, mm, rho, phi));
+    for (let a = 0; a < n; a++) { b[a] += z[a] * vals[i]; for (let c = 0; c < n; c++) A[a][c] += z[a] * z[c]; }
+  }
+  return { modes, coef: solve(A, b) || Array(n).fill(0) };
+}
+const zEval = (f, x, y) => { const [rho, phi] = polar(x, y); return f.modes.reduce((s, [n, m], i) => s + f.coef[i] * zern(n, m, rho, phi), 0); };
+function grid(res) {
+  const g = Array.from({ length: res }, (_, i) => -WR + 2 * WR * i / (res - 1));
+  return { xs: g.map(v => v + WC[0]), ys: g.map(v => v + WC[1]) };
+}
+const inWafer = (x, y) => Math.hypot(x - WC[0], y - WC[1]) <= WR + 1e-9;
+
+// =================================================================== 상태
+const S = { model: 'front', Tp: 55, T: 150, dose: 1, cyc: 1, params: { front: defaults('front'), old: defaults('old') },
+            data: paperData(), tab: 'map', cv: null, fitMsg: '' };
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '—';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+// =================================================================== 그래프 (외부 라이브러리 없이 canvas로 직접 그림)
+{ const _arc = CanvasRenderingContext2D.prototype.arc;
+  CanvasRenderingContext2D.prototype.arc = function (x, y, r, a0, a1, ccw) { return _arc.call(this, x, y, Math.max(0, r || 0), a0, a1, ccw); }; }
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+function makeScale(stops) {
+  const s = stops.map(([t, c]) => [t, hex2rgb(c)]);
+  return v => {
+    v = clamp(Number.isFinite(v) ? v : 0, 0, 1); let k = 0;
+    while (k < s.length - 2 && v > s[k + 1][0]) k++;
+    const [t0, c0] = s[k], [t1, c1] = s[k + 1], f = (v - t0) / ((t1 - t0) || 1);
+    return c0.map((c, i) => Math.round(c + (c1[i] - c) * f));
+  };
+}
+const SC_PAPER = makeScale([[0,'#d7191c'],[0.25,'#fdae61'],[0.5,'#ffffbf'],[0.7,'#abdda4'],[0.85,'#2b83ba'],[1,'#253494']]);
+const SC_DIV = makeScale([[0,'#b2182b'],[0.25,'#ef8a62'],[0.5,'#f7f7f7'],[0.75,'#67a9cf'],[1,'#2166ac']]);
+const SC_VIR = makeScale([[0,'#440154'],[0.25,'#3b528b'],[0.5,'#21918c'],[0.75,'#5ec962'],[1,'#fde725']]);
+const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+const FONT = () => getComputedStyle(document.body).fontFamily;
+
+function canvasFor(id) {
+  const host = $(id);
+  let cv = host.querySelector('canvas'), tip = host.querySelector('.ctip');
+  if (!cv) {
+    cv = document.createElement('canvas'); tip = document.createElement('div'); tip.className = 'ctip'; tip.hidden = true;
+    host.append(cv, tip);
+    const move = e => {
+      if (!cv._hover) return;
+      const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, t = cv._hover(px, py);
+      if (!t) { tip.hidden = true; return; }
+      tip.innerHTML = t; tip.hidden = false;
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      tip.style.left = (px + 14 + tw > r.width ? Math.max(0, px - 14 - tw) : px + 14) + 'px';
+      tip.style.top = Math.min(r.height - th, py + 14) + 'px';
+    };
+    cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move);
+    cv.addEventListener('pointerleave', () => { tip.hidden = true; });
+  }
+  const r = host.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const w = Math.round(r.width), h = Math.round(r.height);
+  if (w < 160 || h < 120) { cv.width = 0; cv.height = 0; cv._hover = null; return null; }   // 크기가 정해지면 ResizeObserver가 다시 그림
+  cv.style.width = w + 'px'; cv.style.height = h + 'px'; cv.width = w * dpr; cv.height = h * dpr;
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  ctx.font = `12px ${FONT()}`;
+  return { cv, ctx, w, h };
+}
+function ticks(lo, hi, n = 6) {
+  const span = (hi - lo) || 1, raw = span / n, p = 10 ** Math.floor(Math.log10(raw));
+  const st = [1, 2, 2.5, 5, 10].map(k => k * p).find(s => s >= raw);
+  const out = []; for (let v = Math.ceil(lo / st - 1e-9) * st; v <= hi + st * 1e-9; v += st) out.push(+v.toPrecision(12));
+  return { out, st };
+}
+function tfmt(v, st) {
+  const e = Math.floor(Math.log10(st)), m = st / 10 ** e;
+  return v.toFixed(Math.max(0, -e + (Math.abs(m - 2.5) < 1e-9 ? 1 : 0)));
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function colorbar(ctx, x, y, h, lo, hi, scale, title) {
+  if (!(h > 10)) return;
+  const ink2 = cssv('--ink2');
+  for (let i = 0; i < h; i++) { ctx.fillStyle = rgb(scale(1 - i / h)); ctx.fillRect(x, y + i, 12, 1.5); }
+  ctx.strokeStyle = cssv('--line'); ctx.strokeRect(x, y, 12, h);
+  const t = ticks(lo, hi, 5); ctx.fillStyle = ink2; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  for (const v of t.out) { const yy = y + h - (v - lo) / ((hi - lo) || 1) * h; ctx.fillText(tfmt(v, t.st), x + 16, yy); }
+  if (title) { ctx.textBaseline = 'bottom'; ctx.fillText(title, x - 2, y - 6); }
+}
+
+// 선·점·막대 그래프
+function xyChart(id, o) {
+  const cnv = canvasFor(id); if (!cnv) return;
+  const { cv, ctx, w, h } = cnv;
+  const ink = cssv('--ink'), ink2 = cssv('--ink2'), line = cssv('--line');
+  const series = o.series || [];
+  const leg = series.filter(s => s.name);
+  const rows = []; let row = [], lx = 0;
+  for (const s of leg) { const wd = ctx.measureText(s.name).width + 34; if (lx + wd > w - 60 && row.length) { rows.push(row); row = []; lx = 0; } row.push(s); lx += wd; }
+  if (row.length) rows.push(row);
+  const T = 10 + rows.length * 18, L = 58, Rm = o.cbar ? 78 : 16, B = o.bars ? 58 : 44;
+  const pw = w - L - Rm, ph = h - T - B;
+  if (pw < 40 || ph < 40) return;
+  let x0, x1, y0, y1;
+  if (o.bars) {
+    x0 = -0.5; x1 = o.bars.labels.length - 0.5;
+    y0 = Math.min(0, ...o.bars.values); y1 = Math.max(0, ...o.bars.values);
+    const pad = (y1 - y0) * 0.08 || 1; if (y1 > 0) y1 += pad; if (y0 < 0) y0 -= pad;
+  } else {
+    const xs = [], ys = [];
+    for (const s of series) s.x.forEach((v, i) => { if (Number.isFinite(v) && Number.isFinite(s.y[i])) { xs.push(v); ys.push(s.y[i]); } });
+    [x0, x1] = o.xr || [Math.min(...xs), Math.max(...xs)];
+    if (o.yr) [y0, y1] = o.yr;
+    else { y0 = Math.min(...ys); y1 = Math.max(...ys); const pad = (y1 - y0) * 0.08 || 1; y1 += pad; y0 = o.y0zero ? Math.min(0, y0) : y0 - pad; }
+  }
+  const X = v => L + (v - x0) / ((x1 - x0) || 1) * pw, Y = v => T + ph - (v - y0) / ((y1 - y0) || 1) * ph;
+  // 격자 · 눈금
+  ctx.lineWidth = 1; ctx.strokeStyle = line; ctx.fillStyle = ink2; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const yt = ticks(y0, y1, 5);
+  for (const v of yt.out) { ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(L + pw, Y(v)); ctx.stroke(); ctx.fillText(tfmt(v, yt.st), L - 6, Y(v)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  if (o.bars) {
+    o.bars.labels.forEach((lab, i) => { ctx.save(); ctx.translate(X(i) + 4, T + ph + 6); ctx.rotate(-Math.PI / 4); ctx.textAlign = 'right'; ctx.fillText(lab, 0, 0); ctx.restore(); });
+  } else {
+    const xt = o.xticks || ticks(x0, x1, 6);
+    for (const v of xt.out) { ctx.beginPath(); ctx.moveTo(X(v), T); ctx.lineTo(X(v), T + ph); ctx.stroke(); ctx.fillText(o.xtickfmt ? o.xtickfmt(v) : tfmt(v, xt.st), X(v), T + ph + 6); }
+  }
+  ctx.strokeStyle = ink2; ctx.strokeRect(L, T, pw, ph);
+  ctx.fillStyle = ink2;
+  if (o.xlabel) { ctx.textBaseline = 'bottom'; ctx.textAlign = 'center'; ctx.fillText(o.xlabel, L + pw / 2, h - 2); }
+  if (o.ylabel) { ctx.save(); ctx.translate(13, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(o.ylabel, 0, 0); ctx.restore(); }
+  // 데이터
+  ctx.save(); ctx.beginPath(); ctx.rect(L, T, pw, ph); ctx.clip();
+  if (o.vline != null) { ctx.strokeStyle = ink2; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(o.vline), T); ctx.lineTo(X(o.vline), T + ph); ctx.stroke(); ctx.setLineDash([]); }
+  if (o.bars) {
+    const bw = pw / o.bars.labels.length * 0.7;
+    if (y0 < 0) { ctx.strokeStyle = ink2; ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(L + pw, Y(0)); ctx.stroke(); }
+    o.bars.values.forEach((v, i) => { ctx.fillStyle = o.bars.colors[i]; ctx.fillRect(X(i) - bw / 2, Math.min(Y(0), Y(v)), bw, Math.abs(Y(v) - Y(0))); });
+  }
+  for (const s of series) {
+    if (s.mode !== 'markers') {
+      ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 2.2; ctx.setLineDash(s.dash ? [6, 4] : []);
+      ctx.beginPath(); let pen = false;
+      s.x.forEach((v, i) => { const yv = s.y[i]; if (!Number.isFinite(v) || !Number.isFinite(yv)) { pen = false; return; } pen ? ctx.lineTo(X(v), Y(yv)) : ctx.moveTo(X(v), Y(yv)); pen = true; });
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (s.mode === 'markers' || s.mode === 'lines+markers') {
+      s.x.forEach((v, i) => {
+        if (!Number.isFinite(v) || !Number.isFinite(s.y[i])) return;
+        const c = s.colors ? s.colors[i] : s.color;
+        ctx.beginPath(); ctx.arc(X(v), Y(s.y[i]), s.size || 4.5, 0, Math.PI * 2);
+        if (s.open) { ctx.fillStyle = cssv('--panel'); ctx.fill(); ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.stroke(); }
+        else { ctx.fillStyle = c; ctx.fill(); }
+      });
+    }
+  }
+  ctx.restore();
+  // 범례
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  rows.forEach((r, ri) => {
+    let x = L; const y = 9 + ri * 18;
+    for (const s of r) {
+      ctx.strokeStyle = s.color; ctx.fillStyle = s.color; ctx.lineWidth = 2.2;
+      if (s.mode === 'markers') { ctx.beginPath(); ctx.arc(x + 9, y, 4.5, 0, Math.PI * 2); if (s.open) { ctx.stroke(); } else ctx.fill(); }
+      else { ctx.setLineDash(s.dash ? [5, 3] : []); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 18, y); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.fillStyle = ink2; ctx.fillText(s.name, x + 24, y); x += ctx.measureText(s.name).width + 34;
+    }
+  });
+  if (o.cbar) colorbar(ctx, L + pw + 18, T + 18, ph - 18, o.cbar.lo, o.cbar.hi, o.cbar.scale, o.cbar.title);
+  // 마우스 정보
+  cv._hover = (px, py) => {
+    if (px < L || px > L + pw || py < T || py > T + ph) return null;
+    if (o.bars) {
+      const i = Math.round(x0 + (px - L) / pw * (x1 - x0)); if (i < 0 || i >= o.bars.labels.length) return null;
+      return `<b>${o.bars.labels[i]}</b> ${o.bars.values[i].toFixed(3)}`;
+    }
+    let best = null, bd = 100;
+    for (const s of series) if (s.mode === 'markers' || s.mode === 'lines+markers') s.x.forEach((v, i) => {
+      const d = (X(v) - px) ** 2 + (Y(s.y[i]) - py) ** 2; if (d < bd) { bd = d; best = s.tip ? s.tip(i) : `${s.name || ''} ${v.toFixed(2)}, ${s.y[i].toFixed(2)}`; } });
+    if (best) return best;
+    const xv = x0 + (px - L) / pw * (x1 - x0), out = [];
+    for (const s of series) {
+      if (s.mode === 'markers' || !s.name) continue;
+      let k = 0, kd = Infinity; s.x.forEach((v, i) => { const d = Math.abs(v - xv); if (d < kd) { kd = d; k = i; } });
+      out.push(`<span class="sw" style="background:${s.color}"></span>${s.name} <b>${fmt(s.y[k])}</b>`);
+    }
+    return out.length ? `<div class="muted">${o.xname || ''} ${xv.toFixed(o.xdec ?? 1)}</div>` + out.join('<br>') : null;
+  };
+}
+
+// 2D 맵 (등축)
+function heatmap(id, o) {
+  const cnv = canvasFor(id); if (!cnv) return;
+  const { cv, ctx, w, h } = cnv;
+  const ink = cssv('--ink'), ink2 = cssv('--ink2');
+  const T = o.title ? 30 : 10, B = 40, L = 50, Rm = 72, pw = w - L - Rm, ph = h - T - B;
+  if (pw < 40 || ph < 40) return;
+  const [xa, xb] = o.xr, [ya, yb] = o.yr, s = Math.max(0.01, Math.min(pw / (xb - xa), ph / (yb - ya)));
+  const sx = o.free ? pw / (xb - xa) : s, sy = o.free ? ph / (yb - ya) : s;
+  const ox = L + (pw - (xb - xa) * sx) / 2, oy = T + (ph - (yb - ya) * sy) / 2;
+  const X = v => ox + (v - xa) * sx, Y = v => oy + (yb - v) * sy;
+  if (o.title) { ctx.fillStyle = ink; ctx.font = `600 13px ${FONT()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(o.title, 8, 6); ctx.font = `12px ${FONT()}`; }
+  // 값 → 이미지
+  const nx = o.xs.length, ny = o.ys.length, off = document.createElement('canvas'); off.width = nx; off.height = ny;
+  const octx = off.getContext('2d'), img = octx.createImageData(nx, ny), span = (o.zmax - o.zmin) || 1;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const v = o.z[j][i], k = ((ny - 1 - j) * nx + i) * 4;
+    if (v == null || !Number.isFinite(v)) { img.data[k + 3] = 0; continue; }
+    let c = o.scale((v - o.zmin) / span);
+    if (o.dim && o.dim(j, i)) c = c.map(q => Math.round(q * 0.35 + 150 * 0.65));   // 조건 불만족 칸은 회색으로 흐리게
+    img.data[k] = c[0]; img.data[k + 1] = c[1]; img.data[k + 2] = c[2]; img.data[k + 3] = 255;
+  }
+  octx.putImageData(img, 0, 0);
+  const dx = (o.xs[nx - 1] - o.xs[0]) / (nx - 1), dy = (o.ys[ny - 1] - o.ys[0]) / (ny - 1);
+  ctx.save();
+  if (o.clip) { ctx.beginPath(); ctx.arc(X(o.clip.cx), Y(o.clip.cy), o.clip.r * s, 0, Math.PI * 2); ctx.clip(); }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingEnabled = !o.free;
+  ctx.drawImage(off, X(o.xs[0] - dx / 2), Y(o.ys[ny - 1] + dy / 2), nx * dx * sx, ny * dy * sy);
+  ctx.restore();
+  // 축
+  ctx.fillStyle = ink2; ctx.strokeStyle = ink2; ctx.lineWidth = 1;
+  const xt = ticks(xa, xb, 6), yt = ticks(ya, yb, 7);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const v of xt.out) { ctx.beginPath(); ctx.moveTo(X(v), Y(ya)); ctx.lineTo(X(v), Y(ya) + 4); ctx.stroke(); ctx.fillText(tfmt(v, xt.st), X(v), Y(ya) + 6); }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const v of yt.out) { ctx.beginPath(); ctx.moveTo(X(xa) - 4, Y(v)); ctx.lineTo(X(xa), Y(v)); ctx.stroke(); ctx.fillText(tfmt(v, yt.st), X(xa) - 6, Y(v)); }
+  ctx.beginPath(); ctx.moveTo(X(xa), Y(yb)); ctx.lineTo(X(xa), Y(ya)); ctx.lineTo(X(xb), Y(ya)); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(o.xlabel || 'x [cm]', X((xa + xb) / 2), h - 2);
+  ctx.save(); ctx.translate(12, Y((ya + yb) / 2)); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(o.ylabel || 'y [cm]', 0, 0); ctx.restore();
+  if (o.draw) o.draw(ctx, X, Y, s);
+  colorbar(ctx, Math.min(w - 60, X(xb) + 16), oy + 20, Math.min(ph, (yb - ya) * sy) - 30, o.zmin, o.zmax, o.scale, o.cbarTitle);
+  cv._hover = (px, py) => {
+    const x = xa + (px - ox) / sx, y = yb - (py - oy) / sy;
+    return o.hover ? o.hover(x, y) : null;
+  };
+}
+
+// =================================================================== UI 생성
+$('model-radio').innerHTML = Object.entries(MODELS).map(([k, m]) =>
+  `<label><input type="radio" name="model" value="${k}" ${k === S.model ? 'checked' : ''}> ${m.name}</label>`).join('');
+document.querySelectorAll('input[name=model]').forEach(el => el.addEventListener('change', () => {
+  S.model = el.value; S.fitMsg = ''; S.inv = null; buildParams(); update(); }));
+
+const TABS = [['map','웨이퍼 맵'],['inv','역설계'],['curve','공정 곡선'],['fit','피팅 · 검증'],['zern','Zernike 분해'],['data','데이터']];
+$('tabs').innerHTML = TABS.map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === S.tab}">${l}</button>`).join('');
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]'); if (!b) return;
+  S.tab = b.dataset.tab;
+  document.querySelectorAll('#tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + S.tab));
+  update();
+});
+
+function buildParams() {
+  const spec = MODELS[S.model].spec, p = S.params[S.model];
+  $('psummary').textContent = `${MODELS[S.model].name} · ${spec.length}개`;
+  $('params').innerHTML = spec.map(([k, , lo, hi, u, lab, hint]) =>
+    `<div class="prm"><div class="lab">${lab}${u ? ` [${u}]` : ''}</div>
+     <input type="number" data-p="${k}" min="${lo}" max="${hi}" step="any" value="${+p[k].toPrecision(6)}">
+     ${hint ? `<div class="hint">${hint} · ${lo} ~ ${hi}</div>` : `<div class="hint">${lo} ~ ${hi}</div>`}</div>`).join('');
+  $('params').querySelectorAll('input').forEach(el => el.addEventListener('change', () => {
+    const s = spec.find(x => x[0] === el.dataset.p), v = parseFloat(el.value);
+    if (Number.isFinite(v)) { S.params[S.model][s[0]] = clamp(v, s[2], s[3]); }
+    el.value = +S.params[S.model][s[0]].toPrecision(6); S.cv = null; S.inv = null; update();
+  }));
+  $('btn-fit').textContent = `현재 데이터로 '${MODELS[S.model].name}' 다시 피팅`;
+}
+$('reset-params').addEventListener('click', () => { S.params[S.model] = defaults(S.model); S.cv = null; S.inv = null; buildParams(); update(); });
+
+function syncSliders() {
+  $('Tp').value = S.Tp; $('T').value = S.T; $('dose').value = Math.log10(S.dose); $('cyc').value = Math.log10(S.cyc);
+  $('o-Tp').textContent = S.Tp + ' °C'; $('o-T').textContent = S.T + ' °C';
+  $('o-dose').textContent = '×' + +S.dose.toPrecision(3); $('o-cyc').textContent = '×' + +S.cyc.toPrecision(3);
+}
+$('Tp').addEventListener('input', e => { S.Tp = +e.target.value; $('jump').value = ''; update(); });
+$('T').addEventListener('input', e => { S.T = +e.target.value; $('jump').value = ''; update(); });
+$('dose').addEventListener('input', e => { S.dose = +(10 ** +e.target.value).toPrecision(3); update(); });
+$('cyc').addEventListener('input', e => { S.cyc = +(10 ** +e.target.value).toPrecision(3); update(); });
+$('jump').addEventListener('change', e => {
+  if (!e.target.value) return; const [tp, t] = e.target.value.split('|').map(Number); S.Tp = tp; S.T = t; update(); });
+function buildJump() {
+  const cnt = {}; for (const r of S.data) { const k = r.Tp + '|' + r.T; cnt[k] = (cnt[k] || 0) + 1; }
+  const keys = Object.keys(cnt).filter(k => cnt[k] >= 9).sort((a, b) => { const [p1, t1] = a.split('|').map(Number), [p2, t2] = b.split('|').map(Number); return p1 - p2 || t1 - t2; });
+  $('jump').innerHTML = '<option value="">— 선택 —</option>' + keys.map(k => { const [tp, t] = k.split('|'); return `<option value="${k}">전구체 ${tp} °C / 증착 ${t} °C</option>`; }).join('');
+}
+['fixscale','showfront','zorder'].forEach(id => $(id).addEventListener('input', update));
+
+// =================================================================== 렌더
+function current() {
+  const key = S.model, p = S.params[key], fn = MODELS[key].fn;
+  const f = (x, y, T, Tp, d) => { const r = fn(p, x, y, T, Tp, d); return [r[0] * S.cyc, r[1], r[2] * S.cyc]; };
+  const pr = PTS.map(([x, y]) => f(x, y, S.T, S.Tp, S.dose));
+  const obs = PTS.map(([x, y]) => {
+    const h = S.data.filter(r => r.Tp === S.Tp && r.T === S.T && Math.abs(r.x - x) < 1e-6 && Math.abs(r.y - y) < 1e-6);
+    return h.length ? h.reduce((s, r) => s + r.t, 0) / h.length : NaN;
+  });
+  return { key, p, fn, f, pred: pr.map(v => v[0]), th: pr.map(v => v[1]), h: pr[0][2], obs };
+}
+
+function renderMap(c) {
+  const v = c.pred, mean = v.reduce((a, b) => a + b, 0) / 9;
+  const sd = Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / 8);
+  const nObs = c.obs.filter(Number.isFinite).length;
+  const rm = nObs ? Math.sqrt(c.obs.reduce((s, o, i) => Number.isFinite(o) ? s + (v[i] - o) ** 2 : s, 0) / nObs) : NaN;
+  const K = [['평균 두께 (9점)', fmt(mean) + ' nm'], ['불균일도 1σ (모델)', fmt(sd / mean * 100, 1) + ' %'],
+    ['(max−min)/2·mean', '±' + fmt((Math.max(...v) - Math.min(...v)) / (2 * mean) * 100, 1) + ' %'],
+    ['포화 두께 H_sat(T)', fmt(c.h) + ' nm'], ['최소 포화도 θ', fmt(Math.min(...c.th))],
+    [nObs ? `실측 대비 RMSE (${nObs}점)` : '실측 대비 RMSE', nObs ? fmt(rm) + ' nm' : '데이터 없음']];
+  $('kpis').innerHTML = K.map(([k, val]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${val}</div></div>`).join('');
+
+  $('tbl9').innerHTML = '<tr><th>지점 (x, y)</th><th>예측</th><th>θ</th><th>실측</th><th>잔차</th></tr>' +
+    PTS.map(([x, y], i) => `<tr><td>${PT_NAMES[i]} <span class="muted">(${x}, ${y})</span></td><td class="num">${fmt(v[i])}</td>
+      <td class="num">${fmt(c.th[i])}</td><td class="num">${fmt(c.obs[i])}</td>
+      <td class="num">${Number.isFinite(c.obs[i]) ? (v[i] - c.obs[i] >= 0 ? '+' : '') + fmt(v[i] - c.obs[i]) : '—'}</td></tr>`).join('');
+  $('nodata').textContent = nObs ? '단위 nm · 같은 지점에 측정값이 여러 개면(예: Fig. 1a와 1b가 겹치는 중심점) 평균을 표시합니다.'
+    : '이 조건에는 측정 데이터가 없습니다. 왼쪽에서 데이터가 있는 조건으로 이동할 수 있습니다.';
+
+  const { xs, ys } = grid(141);
+  const z = ys.map(y => xs.map(x => inWafer(x, y) ? c.f(x, y, S.T, S.Tp, S.dose)[0] : null));
+  const flat = z.flat().filter(q => q != null), fix = $('fixscale').checked;
+  const zmin = fix ? 3 : Math.min(...flat), zmax = fix ? 18 : Math.max(...flat) + 1e-6;
+  const front = [];
+  if (c.key === 'front' && $('showfront').checked)
+    for (let i = 0; i <= 160; i++) { const x = -WR + 2 * WR * i / 160, y = frontLine(c.p, S.T, S.Tp, S.dose, x); front.push(Number.isFinite(y) && inWafer(x, y) ? [x, y] : null); }
+  heatmap('pl-map', {
+    xs, ys, z, zmin, zmax, scale: SC_PAPER, xr: [-5.2, 5.2], yr: [-0.7, 12.3], cbarTitle: 'nm',
+    clip: { cx: WC[0], cy: WC[1], r: WR }, ylabel: 'y [cm] (Inlet 기준)',
+    title: `전구체 ${S.Tp} °C · 증착 ${S.T} °C · dose ×${S.dose}` + (S.cyc !== 1 ? ` · 사이클 ×${S.cyc}` : '') + `   굵은 숫자 = 예측, 괄호 = 실측`,
+    draw(ctx, X, Y, s) {
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(WC[0]), Y(WC[1]), WR * s, 0, Math.PI * 2); ctx.stroke();
+      if (front.some(Boolean)) {
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.beginPath(); let pen = false;
+        for (const q of front) { if (!q) { pen = false; continue; } pen ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])); pen = true; }
+        ctx.stroke(); ctx.setLineDash([]);
+        const last = front.filter(Boolean).pop(); ctx.fillStyle = '#fff'; ctx.font = `600 11px ${FONT()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+        ctx.fillText('front θ=0.5', X(last[0]) - 4, Y(last[1]) - 4); ctx.font = `12px ${FONT()}`;
+      }
+      // Inlet · 흐름 화살표
+      ctx.fillStyle = '#222'; ctx.fillRect(X(-0.6), Y(0.35), 1.2 * s, 0.45 * s);
+      ctx.strokeStyle = '#888'; ctx.fillStyle = '#888'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(X(0), Y(0.55)); ctx.lineTo(X(0), Y(2.3)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(X(0), Y(2.6)); ctx.lineTo(X(0) - 6, Y(2.6) + 11); ctx.lineTo(X(0) + 6, Y(2.6) + 11); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = cssv('--ink'); ctx.font = `600 12px ${FONT()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText('Gas inlet', X(0.85), Y(0.15)); ctx.font = `12px ${FONT()}`;
+      // 9점
+      PTS.forEach(([x, y], i) => {
+        const has = Number.isFinite(c.obs[i]), l1 = v[i].toFixed(1), l2 = has ? `(${c.obs[i].toFixed(1)})` : '';
+        ctx.font = `600 12px ${FONT()}`; const w1 = ctx.measureText(l1).width; ctx.font = `11px ${FONT()}`; const w2 = ctx.measureText(l2).width;
+        const bw = Math.max(w1, w2) + 10, bh = has ? 30 : 17, bx = X(x) - bw / 2, by = Y(y) - 8 - bh;
+        ctx.fillStyle = 'rgba(255,255,255,0.88)'; roundRect(ctx, bx, by, bw, bh, 4); ctx.fill();
+        ctx.fillStyle = '#111'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.font = `600 12px ${FONT()}`; ctx.fillText(l1, X(x), by + 2);
+        if (has) { ctx.fillStyle = '#555'; ctx.font = `11px ${FONT()}`; ctx.fillText(l2, X(x), by + 16); }
+        ctx.beginPath(); ctx.arc(X(x), Y(y), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.stroke();
+      });
+      ctx.font = `12px ${FONT()}`;
+    },
+    hover(x, y) {
+      if (!inWafer(x, y)) return null;
+      const r = c.f(x, y, S.T, S.Tp, S.dose);
+      let near = ''; PTS.forEach(([px, py], i) => { if (Math.hypot(px - x, py - y) < 0.35) near = `<br><b>${PT_NAMES[i]}</b> 실측 ${fmt(c.obs[i])}`; });
+      return `<div class="muted">x ${x.toFixed(2)}, y ${y.toFixed(2)} cm</div>두께 <b>${r[0].toFixed(2)}</b> nm · θ <b>${r[1].toFixed(2)}</b>${near}`;
+    },
+  });
+}
+
+function renderCurves(c) {
+  const sel = [['P9 근거리', 8, '#0d7f74'], ['P5 중심', 4, '#3b6fd1'], ['P1 원거리', 0, '#eb6834']];
+  $('t-cT').textContent = `ALD 온도 창 · 전구체 ${S.Tp} °C`;
+  $('t-cTp').textContent = `전구체 공급 곡선 · 증착 ${S.T} °C`;
+  const mk = xvar => {
+    const g = xvar === 'T' ? Array.from({ length: 151 }, (_, i) => 100 + i) : Array.from({ length: 121 }, (_, i) => 50 + i * 0.25);
+    const series = [];
+    for (const [nm, i, col] of sel) {
+      const [x, y] = PTS[i];
+      series.push({ name: nm, color: col, x: g, y: g.map(q => xvar === 'T' ? c.f(x, y, q, S.Tp, S.dose)[0] : c.f(x, y, S.T, q, S.dose)[0]) });
+      const d = S.data.filter(r => Math.abs(r.x - x) < 1e-6 && Math.abs(r.y - y) < 1e-6 && (xvar === 'T' ? r.Tp === S.Tp : r.T === S.T));
+      if (d.length) series.push({ mode: 'markers', open: true, color: col, size: 5, x: d.map(r => xvar === 'T' ? r.T : r.Tp), y: d.map(r => r.t),
+        tip: k => `<b>${nm} 실측</b><br>${xvar === 'T' ? '증착' : '전구체'} ${xvar === 'T' ? d[k].T : d[k].Tp} °C · ${d[k].t} nm<br><span class="muted">${esc(d[k].src)}</span>` });
+    }
+    if (xvar === 'T') series.push({ name: 'H_sat(T)', color: '#888', dash: true, width: 1.6, x: g, y: g.map(q => c.f(0, 7.5, q, S.Tp, S.dose)[2]) });
+    series.push({ name: '실측 (빈 원)', mode: 'markers', open: true, color: '#666', x: [], y: [] });
+    return { series, y0zero: true, vline: xvar === 'T' ? S.T : S.Tp, xlabel: xvar === 'T' ? '증착 온도 [°C]' : '전구체 온도 [°C]',
+             ylabel: '두께 [nm]', xname: xvar === 'T' ? '증착' : '전구체', xdec: xvar === 'T' ? 0 : 1 };
+  };
+  xyChart('pl-cT', mk('T'));
+  xyChart('pl-cTp', mk('Tp'));
+}
+
+function renderFit(c) {
+  $('fit-msg').innerHTML = S.fitMsg ? `<span class="msg">${esc(S.fitMsg)}</span>` : '';
+  const spec = MODELS[c.key].spec;
+  $('tbl-params').innerHTML = '<tr><th>파라미터</th><th>현재 값</th><th>단위</th><th>사전 피팅값</th><th>성격</th><th>허용 범위</th></tr>' +
+    spec.map(([k, d, lo, hi, u, lab, , kind]) => `<tr><td>${lab}</td><td class="num">${(+c.p[k].toPrecision(5))}</td><td>${u}</td>
+      <td class="num">${+d.toPrecision(5)}</td><td>${kind}</td><td class="num">${lo} ~ ${hi}</td></tr>`).join('');
+  const rows = Object.entries(MODELS).map(([k, m]) => {
+    const cv = S.cv && S.cv[k], mcv = cv && cv.length ? cv.reduce((s, r) => s + r.rmse, 0) / cv.length : NaN;
+    return `<tr><td>${m.name}</td><td class="num">${m.spec.length}</td><td class="num">${fmt(rmseOf(k, S.params[k], S.data), 3)}</td>
+      <td class="num">${S.cv ? fmt(mcv, 3) : '—'}</td></tr>`; });
+  $('tbl-compare').innerHTML = '<tr><th>모델</th><th>파라미터 수</th><th>학습 RMSE [nm]</th><th>검증 RMSE 평균 [nm]</th></tr>' + rows.join('');
+  if (S.cv) {
+    const Ts = S.cv.front.map(r => r.T);
+    $('tbl-cv').innerHTML = '<tr><th>빼낸 증착 온도 [°C]</th><th>점 수</th>' + Object.values(MODELS).map(m => `<th>${m.name}</th>`).join('') + '</tr>' +
+      Ts.map((T, i) => `<tr><td>${T}</td><td class="num">${S.cv.front[i].n}</td>${Object.keys(MODELS).map(k => `<td class="num">${fmt(S.cv[k][i] ? S.cv[k][i].rmse : NaN)}</td>`).join('')}</tr>`).join('');
+  } else $('tbl-cv').innerHTML = '';
+  if (!S.data.length) return;
+  const pr = predictRows(c.key, c.p, S.data), mx = Math.ceil(Math.max(18, ...S.data.map(r => r.t), ...pr) + 1);
+  const Tlo = Math.min(...S.data.map(r => r.T)), Thi = Math.max(...S.data.map(r => r.T));
+  xyChart('pl-parity', { xr: [0, mx], yr: [0, mx], xlabel: '실측 [nm]', ylabel: '예측 [nm]',
+    cbar: { lo: Tlo, hi: Thi + (Thi === Tlo ? 1 : 0), scale: SC_VIR, title: '증착 °C' },
+    series: [
+      { color: '#999', dash: true, width: 1.4, x: [0, mx], y: [0, mx] },
+      { mode: 'markers', size: 5, x: S.data.map(r => r.t), y: pr, colors: S.data.map(r => rgb(SC_VIR((r.T - Tlo) / ((Thi - Tlo) || 1)))),
+        tip: i => { const r = S.data[i]; return `전구체 ${r.Tp} °C · 증착 ${r.T} °C<br>(${r.x}, ${r.y}) cm<br>실측 <b>${r.t}</b> · 예측 <b>${pr[i].toFixed(2)}</b>`; } }] });
+}
+
+function renderZern(c) {
+  const order = +$('zorder').value; $('o-zorder').textContent = order;
+  const { xs, ys } = grid(81), X = [], Y = [], V = [];
+  for (const y of ys) for (const x of xs) if (inWafer(x, y)) { X.push(x); Y.push(y); V.push(c.f(x, y, S.T, S.Tp, S.dose)[0]); }
+  const errAt = o => { const f = zFit(X, Y, V, o); return [f, Math.sqrt(V.reduce((s, v, i) => s + (zEval(f, X[i], Y[i]) - v) ** 2, 0) / V.length)]; };
+  const [f, e] = errAt(order);
+  $('zerr-k').textContent = `${f.modes.length}개 모드 재구성 오차 (RMSE)`; $('zerr').textContent = fmt(e, 3) + ' nm';
+  xyChart('pl-zbar', { bars: { labels: f.modes.map(([n, m]) => `Z(${n},${m})`), values: f.coef,
+    colors: f.modes.map(([, m]) => m === 0 ? '#0d7f74' : '#eb6834') }, ylabel: '계수 [nm]', series: [] });
+  const errs = Array.from({ length: 8 }, (_, i) => errAt(i + 1)[1]);
+  xyChart('pl-zerr', { xticks: { out: [1,2,3,4,5,6,7,8], st: 1 }, xr: [0.6, 8.4], y0zero: true, xlabel: '차수', ylabel: 'RMSE [nm]',
+    series: [{ mode: 'lines+markers', color: '#0d7f74', x: [1,2,3,4,5,6,7,8], y: errs, tip: i => `${i + 1}차 · RMSE <b>${errs[i].toFixed(3)}</b> nm` }] });
+
+  const idx = c.obs.map((o, i) => Number.isFinite(o) ? i : -1).filter(i => i >= 0);
+  const ok = idx.length >= 6;
+  $('zres-wrap').style.display = ok ? '' : 'none';
+  $('zres-none').textContent = ok ? '' : '현재 조건에 측정점이 6개 이상 없어 잔차 분해를 할 수 없습니다.';
+  if (!ok) return;
+  const rx = idx.map(i => PTS[i][0]), ry = idx.map(i => PTS[i][1]), rv = idx.map(i => c.obs[i] - c.pred[i]);
+  const fr = zFit(rx, ry, rv, 2);
+  $('tbl-zres').innerHTML = '<tr><th>모드</th><th>계수 [nm]</th></tr>' +
+    fr.modes.map(([n, m], i) => `<tr><td>Z(${n},${m})</td><td class="num">${(fr.coef[i] >= 0 ? '+' : '') + fmt(fr.coef[i], 3)}</td></tr>`).join('');
+  const left = Math.sqrt(rv.reduce((s, v, i) => s + (zEval(fr, rx[i], ry[i]) - v) ** 2, 0) / rv.length);
+  $('zres-left').textContent = `6모드로 설명하지 못한 오차: ${fmt(left, 3)} nm`;
+  const g2 = grid(81), zr = g2.ys.map(y => g2.xs.map(x => inWafer(x, y) ? zEval(fr, x, y) : null));
+  const lim = Math.max(1e-6, ...zr.flat().filter(v => v !== null).map(Math.abs));
+  heatmap('pl-zres', { xs: g2.xs, ys: g2.ys, z: zr, zmin: -lim, zmax: lim, scale: SC_DIV, cbarTitle: '실측−예측',
+    xr: [-4.8, 4.8], yr: [2.7, 12.3], clip: { cx: WC[0], cy: WC[1], r: WR },
+    draw(ctx, Xf, Yf, s) {
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(Xf(WC[0]), Yf(WC[1]), WR * s, 0, Math.PI * 2); ctx.stroke();
+      idx.forEach((i, k) => { ctx.beginPath(); ctx.arc(Xf(PTS[i][0]), Yf(PTS[i][1]), 4, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill();
+        ctx.fillStyle = '#111'; ctx.font = `11px ${FONT()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText((rv[k] >= 0 ? '+' : '') + rv[k].toFixed(1), Xf(PTS[i][0]) + 6, Yf(PTS[i][1])); });
+      ctx.font = `12px ${FONT()}`;
+    },
+    hover: (x, y) => inWafer(x, y) ? `x ${x.toFixed(2)}, y ${y.toFixed(2)} cm<br>재구성 잔차 <b>${zEval(fr, x, y).toFixed(2)}</b> nm` : null });
+}
+
+function renderData() {
+  const conds = new Set(S.data.map(r => r.Tp + '|' + r.T)).size;
+  $('data-info').textContent = `유효 데이터 ${S.data.length}점 · 조건 ${conds}개`;
+}
+
+function update() {
+  syncSliders();
+  const c = current();
+  const fn = { map: renderMap, inv: renderInv, curve: renderCurves, fit: renderFit, zern: renderZern, data: renderData }[S.tab];
+  try { fn(c); } catch (err) { console.error('render', S.tab, err); }
+}
+
+// =================================================================== 피팅 버튼
+const later = fn => new Promise(res => setTimeout(() => res(fn()), 20));
+$('btn-fit').addEventListener('click', async () => {
+  const b = $('btn-fit'); b.disabled = true; $('fit-msg').innerHTML = '<span class="muted">피팅 중…</span>';
+  const f = await later(() => fit(S.model, S.data, S.params[S.model]));
+  S.params[S.model] = f.p; S.cv = null; S.inv = null; b.disabled = false;
+  S.fitMsg = `${MODELS[S.model].name}: ${S.data.length}점에 피팅 완료 · 학습 RMSE ${f.rmse.toFixed(3)} nm`;
+  buildParams(); update();
+});
+$('btn-cv').addEventListener('click', async () => {
+  const b = $('btn-cv'); b.disabled = true; $('tbl-cv').innerHTML = '<tr><td class="muted">교차검증 중… (수 초)</td></tr>';
+  S.cv = await later(() => Object.fromEntries(Object.keys(MODELS).map(k => [k, lotoCV(k, S.data)])));
+  b.disabled = false; update();
+});
+
+// =================================================================== 데이터 탭
+$('csv').value = toCSV(S.data);
+function setData(rows, msg, isErr) {
+  S.data = rows; S.cv = null; S.inv = null; $('csv').value = toCSV(rows); buildJump(); setFloorDefault();
+  $('data-msg').innerHTML = msg ? `<span class="msg${isErr ? ' err' : ''}">${esc(msg)}</span>` : ''; update();
+}
+$('btn-apply').addEventListener('click', () => {
+  const { rows, bad } = parseCSV($('csv').value);
+  setData(rows, `${rows.length}행 적용` + (bad ? ` · 숫자가 아닌 ${bad}행은 건너뜀` : ''), false);
+});
+$('upload').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { const { rows, bad } = parseCSV(String(rd.result));
+    setData(S.data.concat(rows), `${rows.length}행 추가` + (bad ? ` · ${bad}행 건너뜀` : ''), !rows.length); e.target.value = ''; };
+  rd.readAsText(f);
+});
+$('btn-reset-data').addEventListener('click', () => setData(paperData(), '논문 데이터로 초기화했습니다.'));
+function download(name, blob) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+$('btn-dl').addEventListener('click', () => download('ald_data.csv', new Blob(['﻿' + toCSV(S.data)], { type: 'text/csv' })));
+
+// ---- .npz 작성 (무압축 zip + .npy)
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = u8 => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function npy(descr, shape, body) {
+  const sh = shape.length === 0 ? '()' : shape.length === 1 ? `(${shape[0]},)` : `(${shape.join(', ')})`;
+  let head = `{'descr': '${descr}', 'fortran_order': False, 'shape': ${sh}, }`;
+  const pad = 64 - ((10 + head.length + 1) % 64); head += ' '.repeat(pad % 64) + '\n';
+  const out = new Uint8Array(10 + head.length + body.byteLength);
+  out.set([0x93, 78, 85, 77, 80, 89, 1, 0, head.length & 255, head.length >> 8]);
+  for (let i = 0; i < head.length; i++) out[10 + i] = head.charCodeAt(i);
+  out.set(new Uint8Array(body.buffer, body.byteOffset, body.byteLength), 10 + head.length);
+  return out;
+}
+function npyStr(arr) {
+  const L = Math.max(1, ...arr.map(s => s.length)), u = new Uint32Array(arr.length * L);
+  arr.forEach((s, i) => { for (let k = 0; k < s.length; k++) u[i * L + k] = s.codePointAt(k); });
+  return npy(`<U${L}`, [arr.length], u);
+}
+function zipStore(files) {
+  const enc = new TextEncoder(), parts = [], cen = []; let off = 0;
+  for (const [name, data] of files) {
+    const nm = enc.encode(name), crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(lh.buffer), nm, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+    cen.push(new Uint8Array(ch.buffer), nm);
+    off += 30 + nm.length + data.length;
+  }
+  const csize = cen.reduce((s, a) => s + a.length, 0), end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, csize, true); end.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, new Uint8Array(end.buffer)], { type: 'application/octet-stream' });
+}
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function makeDataset(n, res, Tr, Pr, Dr, seed) {
+  const rnd = mulberry32(seed + 1), perm = () => { const a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const P = [perm(), perm(), perm()], cond = new Float32Array(n * 3), maps = new Float32Array(n * res * res);
+  const { xs, ys } = grid(res), mask = new Uint8Array(res * res);
+  ys.forEach((y, j) => xs.forEach((x, i) => { mask[j * res + i] = inWafer(x, y) ? 1 : 0; }));
+  const key = S.model, p = S.params[key], fn = MODELS[key].fn;
+  for (let s = 0; s < n; s++) {
+    const u = P.map(pp => (pp[s] + rnd()) / n);
+    const T = Tr[0] + u[0] * (Tr[1] - Tr[0]), Tp = Pr[0] + u[1] * (Pr[1] - Pr[0]);
+    const d = Math.exp(Math.log(Dr[0]) + u[2] * (Math.log(Dr[1]) - Math.log(Dr[0])));
+    cond.set([T, Tp, d], s * 3);
+    const o = s * res * res;
+    for (let j = 0; j < res; j++) for (let i = 0; i < res; i++) if (mask[j * res + i]) maps[o + j * res + i] = fn(p, xs[i], ys[j], T, Tp, d)[0];
+  }
+  const spec = MODELS[key].spec;
+  return zipStore([
+    ['cond.npy', npy('<f4', [n, 3], cond)], ['cond_names.npy', npyStr(['T_dep_C', 'T_prec_C', 'dose_mult'])],
+    ['maps.npy', npy('<f4', [n, res, res], maps)], ['mask.npy', npy('|b1', [res, res], mask)],
+    ['x_cm.npy', npy('<f4', [res], Float32Array.from(xs))], ['y_cm.npy', npy('<f4', [res], Float32Array.from(ys))],
+    ['params.npy', npy('<f8', [spec.length], Float64Array.from(spec.map(s => p[s[0]])))],
+    ['param_names.npy', npyStr(spec.map(s => s[0]))], ['model.npy', npyStr([key])]]);
+}
+$('btn-ds').addEventListener('click', async () => {
+  const n = Math.round(+$('ds-n').value), res = +$('ds-res').value, seed = Math.round(+$('ds-seed').value) || 0;
+  const Tr = [+$('ds-T0').value, +$('ds-T1').value], Pr = [+$('ds-P0').value, +$('ds-P1').value];
+  let Dr = [+$('ds-D0').value, +$('ds-D1').value];
+  const bad = !(n >= 1 && n <= 2000) || [...Tr, ...Pr].some(v => !Number.isFinite(v)) || !(Dr[0] > 0 && Dr[1] > 0);
+  if (bad) { $('ds-msg').innerHTML = '<span class="msg err">샘플 수는 1–2000, 범위는 숫자, dose는 0보다 커야 합니다.</span>'; return; }
+  if (n * res * res > 4e7) { $('ds-msg').innerHTML = '<span class="msg err">너무 큽니다. 샘플 수나 해상도를 줄여 주세요 (n×해상도² ≤ 4천만).</span>'; return; }
+  if (Dr[0] === Dr[1]) Dr = [Dr[0], Dr[0] * 1.0001];
+  $('ds-msg').innerHTML = '<span class="muted">생성 중…</span>';
+  const blob = await later(() => makeDataset(n, res, Tr, Pr, Dr, seed));
+  download('ald_synthetic_dataset.npz', blob);
+  $('ds-msg').innerHTML = `<span class="msg">${n}개 × ${res}×${res} · ${(blob.size / 1e6).toFixed(1)} MB 생성</span>`;
+});
+
+// =================================================================== 역설계 (목표 사양 → 공정 조건 추천)
+// ald_model.py의 inverse_design과 같은 알고리즘
+const OBJ_NAMES = { nu: '불균일도 최소', usage: '전구체 사용량 최소', temp: '증착 온도 최소' };
+const arange = (a, b, st) => { const o = []; for (let v = a; v <= b + 1e-9; v += st) o.push(+v.toFixed(6)); return o; };
+function evalPoints(region) {
+  if (region === '9pt') return PTS.map(q => q.slice());
+  const g = Array.from({ length: 13 }, (_, i) => -WR + 2 * WR * i / 12), out = [];
+  for (const yy of g) for (const xx of g) { const x = xx + WC[0], y = yy + WC[1]; if (inWafer(x, y)) out.push([x, y]); }
+  return out;
+}
+function measuredConds(rows) {
+  const cnt = {}; for (const r of rows) { const k = r.Tp + '|' + r.T; cnt[k] = (cnt[k] || 0) + 1; }
+  return Object.keys(cnt).filter(k => cnt[k] >= 9).map(k => k.split('|').map(Number));   // [Tp, T]
+}
+function measuredFloor(rows) {
+  const g = {}; for (const r of rows) (g[r.Tp + '|' + r.T] ||= []).push(r.t);
+  let best = null;
+  for (const [k, v] of Object.entries(g)) {
+    if (v.length < 9) continue;
+    const m = v.reduce((a, b) => a + b, 0) / v.length, sd = Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length - 1));
+    const [tp, t] = k.split('|').map(Number);
+    if (!best || sd / m * 100 < best.nu) best = { nu: sd / m * 100, Tp: tp, T: t };
+  }
+  return best;
+}
+function inverseDesign(o) {
+  const t0 = performance.now(), key = S.model, p = S.params[key], fn = MODELS[key].fn;
+  const fine = o.region === '9pt';
+  const Ts = arange(o.T[0], o.T[1], fine ? 1 : 2), Tps = arange(o.Tp[0], o.Tp[1], fine ? 0.5 : 1);
+  const nD = fine ? 21 : 13;
+  const Ds = o.doseFree ? Array.from({ length: nD }, (_, i) => Math.exp(Math.log(o.D[0]) + (Math.log(o.D[1]) - Math.log(o.D[0])) * i / (nD - 1))) : [1];
+  const pts = evalPoints(o.region), M = pts.length, meas = measuredConds(S.data);
+  const N = Ts.length * Tps.length * Ds.length, C = [];
+  const zbuf = new Float64Array(M);
+  for (const T of Ts) for (const Tp of Tps) for (const d of Ds) {
+    let s1 = 0, s2 = 0, mx = -Infinity, mn = Infinity, thm = Infinity;
+    for (let k = 0; k < M; k++) { const r = fn(p, pts[k][0], pts[k][1], T, Tp, d); zbuf[k] = r[0]; s1 += r[0]; if (r[0] > mx) mx = r[0]; if (r[0] < mn) mn = r[0]; if (r[1] < thm) thm = r[1]; }
+    const m0 = s1 / M; for (let k = 0; k < M; k++) s2 += (zbuf[k] - m0) ** 2;
+    const sd = Math.sqrt(s2 / (M - 1));
+    const nuModel = sd / m0 * 100, nu = Math.hypot(nuModel, o.floor);
+    const cyc = o.cycFree ? clamp(o.target / m0, o.C[0], o.C[1]) : 1;
+    const mean = m0 * cyc, usage = d * pvr(Tp, p.dH) * cyc;
+    const okThk = Math.abs(mean - o.target) <= o.tol, okNu = nu <= o.nuMax, okTh = thm >= o.thMin;
+    const support = Math.abs(d - 1) < 1e-6 && Math.abs(cyc - 1) < 1e-6 && meas.some(([mp, mt]) => Math.abs(Tp - mp) <= 2.5 && Math.abs(T - mt) <= 12.5);
+    C.push({ T, Tp, dose: d, cyc, mean, nu, nuModel, nur: (mx - mn) / (2 * m0) * 100, thmin: thm, usage, okThk, okNu, okTh,
+             feasible: okThk && okNu && okTh, support,
+             viol: Math.max(0, Math.abs(mean - o.target) - o.tol) / Math.max(o.tol, 1e-9) + Math.max(0, nu - o.nuMax) / Math.max(o.nuMax, 1e-9)
+                   + Math.max(0, o.thMin - thm) / Math.max(o.thMin, 1e-2) });
+  }
+  // 순위 키 (모델 오차보다 훨씬 작은 차이는 같은 값으로)
+  const nuR = c => Math.round(c.nu * 10) / 10, useR = c => Math.round(Math.log(c.usage) / Math.log(1.01));
+  const ext = c => Math.abs(Math.log(c.dose)) + Math.abs(Math.log(c.cyc)) + (c.support ? 0 : 0.5);
+  let keys = { nu: [nuR, useR, c => c.T, ext], usage: [useR, nuR, c => c.T, ext], temp: [c => c.T, nuR, useR, ext] }[o.obj];
+  let pool = C.filter(c => c.feasible), status = 'ok';
+  if (!pool.length) { pool = C.slice(); keys = [c => Math.round(c.viol * 1000) / 1000, ...keys]; status = 'none'; }
+  const kv = pool.map(c => keys.map(k => k(c)));
+  const order = pool.map((_, i) => i).sort((a, b) => { for (let j = 0; j < keys.length; j++) { const d = kv[a][j] - kv[b][j]; if (d) return d; } return 0; });
+  const top = [];
+  for (const i of order) {
+    const c = pool[i];
+    if (top.every(q => Math.abs(c.T - q.T) >= 15 || Math.abs(Math.log(c.usage / q.usage)) >= 0.15)) top.push(c);
+    if (top.length >= 5) break;
+  }
+  const thk = C.filter(c => c.okThk && c.okTh).sort((a, b) => a.usage - b.usage || a.nu - b.nu);
+  const pareto = []; let best = Infinity;
+  for (const c of thk) if (c.nu < best - 1e-4) { pareto.push(c); best = c.nu; }   // 1e-4 % 미만 차이는 계산 잡음
+  return { status, top, all: C, thk, pareto, Ts, Tps, Ds, nPts: M, nCand: N, nFeas: C.filter(c => c.feasible).length,
+           ms: performance.now() - t0, opts: o, model: key };
+}
+
+function readInvForm() {
+  const num = id => parseFloat($(id).value);
+  const o = { target: num('inv-target'), tol: num('inv-tol'), nuMax: num('inv-numax'), thMin: num('inv-thmin'), floor: num('inv-floor'),
+              obj: $('inv-obj').value, region: $('inv-region').value,
+              T: [num('inv-T0'), num('inv-T1')], Tp: [num('inv-P0'), num('inv-P1')], D: [num('inv-D0'), num('inv-D1')], C: [num('inv-C0'), num('inv-C1')],
+              doseFree: $('inv-dosefree').checked, cycFree: $('inv-cycfree').checked };
+  const err = [];
+  if (!(o.target > 0)) err.push('목표 두께는 0보다 커야 합니다');
+  if (!(o.tol > 0)) err.push('허용 오차는 0보다 커야 합니다');
+  if (!(o.nuMax >= 0)) err.push('최대 불균일도를 확인하세요');
+  if (!(o.thMin >= 0 && o.thMin <= 1)) err.push('최소 포화도는 0~1입니다');
+  if (!(o.floor >= 0)) err.push('모델 밖 편차는 0 이상입니다');
+  o.T = [clamp(o.T[0], 100, 250), clamp(o.T[1], 100, 250)]; o.Tp = [clamp(o.Tp[0], 50, 80), clamp(o.Tp[1], 50, 80)];
+  if (!(o.T[0] <= o.T[1]) || !(o.Tp[0] <= o.Tp[1])) err.push('탐색 범위의 최솟값이 최댓값보다 큽니다 (증착 100–250 °C, 전구체 50–80 °C 안에서)');
+  if (o.doseFree && !(o.D[0] > 0 && o.D[0] < o.D[1])) err.push('dose 범위를 확인하세요 (0 < 최소 < 최대)');
+  if (o.cycFree && !(o.C[0] > 0 && o.C[0] < o.C[1])) err.push('사이클 범위를 확인하세요 (0 < 최소 < 최대)');
+  return { o, err };
+}
+function setFloorDefault() {
+  const f = measuredFloor(S.data);
+  $('inv-floor').value = f ? f.nu.toFixed(2) : '0';
+  $('inv-floor-hint').textContent = f
+    ? `측정 맵 중 가장 균일한 전구체 ${f.Tp} °C / 증착 ${f.T} °C 맵의 불균일도. 모델에 히터 온도 분포 같은 공간 요인이 없어서, 이 값을 빼면 포화 영역의 예측 불균일도가 0 %가 됩니다.`
+    : '9점 측정 맵이 없어 0으로 둡니다.';
+}
+$('btn-inv').addEventListener('click', async () => {
+  const { o, err } = readInvForm();
+  if (err.length) { $('inv-msg').innerHTML = `<span class="msg err">${esc(err.join(' · '))}</span>`; return; }
+  const b = $('btn-inv'); b.disabled = true; $('inv-msg').innerHTML = '<span class="muted">계산 중…</span>';
+  S.inv = await later(() => inverseDesign(o));
+  b.disabled = false; update();
+});
+function applyCond(c) {
+  S.T = c.T; S.Tp = c.Tp; S.dose = +c.dose.toPrecision(3); S.cyc = +c.cyc.toPrecision(3); $('jump').value = '';
+  document.querySelector('#tabs button[data-tab=map]').click();
+  window.scrollTo({ top: 0 });
+}
+
+function renderInv() {
+  const R = S.inv;
+  $('inv-out').hidden = !R;
+  if (!R) { $('inv-msg').innerHTML = ''; return; }
+  const o = R.opts, fmtN = n => n.toLocaleString('ko-KR');
+  $('inv-msg').innerHTML = R.status === 'ok'
+    ? `<span class="msg">후보 ${fmtN(R.nCand)}개 × 평가 지점 ${R.nPts}개 계산 · ${fmtN(R.nFeas)}개가 조건 만족 · ${(R.ms / 1000).toFixed(2)}초</span>`
+    : `<span class="msg err">조건을 모두 만족하는 후보가 없습니다 (${fmtN(R.nCand)}개 계산). 아래는 제약 위반이 가장 작은 절충안입니다.${!o.cycFree ? ' 두께가 문제라면 "사이클 수 조정 허용"을 켜 보세요.' : ''}${o.nuMax < o.floor ? ` 최대 불균일도(${o.nuMax} %)가 모델 밖 편차(${o.floor} %)보다 작아 만족할 수 없습니다.` : ''}</span>`;
+  const mark = ok => ok ? '' : ' <span style="color:var(--crit)">✕</span>';
+  $('tbl-inv').innerHTML = '<tr><th>순위</th><th>증착 °C</th><th>전구체 °C</th><th>dose</th><th>사이클</th><th>평균 두께 [nm]</th><th>불균일도 1σ [%]</th><th>최소 θ</th><th>전구체 사용량</th><th>근거</th><th></th></tr>' +
+    R.top.map((c, i) => `<tr><td>${i + 1}</td><td class="num">${c.T}</td><td class="num">${c.Tp}</td><td class="num">×${+c.dose.toPrecision(3)}</td>
+      <td class="num">×${+c.cyc.toPrecision(3)}</td><td class="num">${fmt(c.mean)}${mark(c.okThk)}</td>
+      <td class="num">${fmt(c.nu)}${mark(c.okNu)} <span class="muted">(모델 ${fmt(c.nuModel)})</span></td><td class="num">${fmt(c.thmin)}${mark(c.okTh)}</td>
+      <td class="num">×${fmt(c.usage)}</td><td>${c.support ? '<span class="badge good">측정 맵 인근</span>' : '<span class="badge warn">외삽</span>'}</td>
+      <td><button type="button" data-apply="${i}">적용</button></td></tr>`).join('');
+  $('tbl-inv').querySelectorAll('button[data-apply]').forEach(bt => bt.addEventListener('click', () => applyCond(R.top[+bt.dataset.apply])));
+
+  // Pareto
+  const lg = v => Math.log10(v), step = Math.max(1, Math.ceil(R.thk.length / 3000));
+  const cloud = R.thk.filter((_, i) => i % step === 0);
+  const allU = R.thk.map(c => lg(c.usage)), xr = allU.length ? [Math.min(...allU), Math.max(...allU)] : [-0.1, 0.1];
+  if (xr[1] - xr[0] < 0.05) { xr[0] -= 0.05; xr[1] += 0.05; }
+  const pad = (xr[1] - xr[0]) * 0.04; xr[0] -= pad; xr[1] += pad;
+  const ymax = Math.max(o.nuMax * 1.6, ...R.top.map(c => c.nu)) + 0.5;
+  const tip = c => `증착 <b>${c.T}</b> °C · 전구체 <b>${c.Tp}</b> °C · dose ×${+c.dose.toPrecision(3)} · 사이클 ×${+c.cyc.toPrecision(3)}<br>불균일도 <b>${fmt(c.nu)}</b> % · 사용량 ×${fmt(c.usage)} · 평균 ${fmt(c.mean)} nm`;
+  xyChart('pl-pareto', { xr, yr: [0, ymax], xlabel: '전구체 사용량 (논문 조건 = 1, 로그 축)', ylabel: '불균일도 1σ [%]', xname: '사용량',
+    xtickfmt: v => '×' + +(10 ** v).toPrecision(2),
+    series: [
+      { name: '후보', mode: 'markers', color: '#c3c8cf', size: 2.2, x: cloud.map(c => lg(c.usage)), y: cloud.map(c => Math.min(c.nu, ymax * 2)), tip: i => tip(cloud[i]) },
+      { name: '불균일도 상한', color: '#c23b3a', dash: true, width: 1.4, x: xr, y: [o.nuMax, o.nuMax] },
+      { name: 'Pareto 최적', mode: 'lines+markers', color: '#0d7f74', size: 3, x: R.pareto.map(c => lg(c.usage)), y: R.pareto.map(c => c.nu), tip: i => tip(R.pareto[i]) },
+      { name: '추천', mode: 'markers', color: '#eb6834', size: 7, x: R.top.map(c => lg(c.usage)), y: R.top.map(c => c.nu), tip: i => `<b>추천 ${i + 1}</b><br>` + tip(R.top[i]) }] });
+
+  // 가능 영역 (증착 온도 × 전구체 온도), 추천 1순위의 dose 단면
+  const best = R.top[0], dIdx = R.Ds.reduce((bi, d, i) => Math.abs(Math.log(d / best.dose)) < Math.abs(Math.log(R.Ds[bi] / best.dose)) ? i : bi, 0);
+  const nP = R.Tps.length, nDd = R.Ds.length, cell = (iT, iP) => R.all[(iT * nP + iP) * nDd + dIdx];
+  const z = R.Tps.map((_, iP) => R.Ts.map((_, iT) => cell(iT, iP).nu));
+  const zmax = Math.max(o.nuMax * 2, o.floor + 1);
+  $('t-feas').textContent = `가능 영역 · dose ×${+R.Ds[dIdx].toPrecision(3)}` + (o.cycFree ? ' · 사이클은 두께 목표에 맞춤' : '');
+  const meas = measuredConds(S.data), dT = R.Ts[1] - R.Ts[0] || 1, dP = R.Tps[1] - R.Tps[0] || 0.5;
+  heatmap('pl-feas', { free: true, xs: R.Ts, ys: R.Tps, z, zmin: 0, zmax, scale: v => SC_PAPER(1 - v), cbarTitle: '1σ %',
+    xr: [R.Ts[0] - dT / 2, R.Ts[R.Ts.length - 1] + dT / 2], yr: [R.Tps[0] - dP / 2, R.Tps[R.Tps.length - 1] + dP / 2],
+    xlabel: '증착 온도 [°C]', ylabel: '전구체 온도 [°C]', dim: (iP, iT) => !cell(iT, iP).feasible,
+    draw(ctx, X, Y) {
+      for (const [mp, mt] of meas) if (mt >= R.Ts[0] && mt <= R.Ts[R.Ts.length - 1] && mp >= R.Tps[0] && mp <= R.Tps[R.Tps.length - 1]) {
+        ctx.beginPath(); ctx.arc(X(mt), Y(mp), 4, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill(); }
+      ctx.font = `600 11px ${FONT()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      R.top.forEach((c, i) => {
+        if (Math.abs(Math.log(c.dose / R.Ds[dIdx])) > 1e-6) return;
+        ctx.beginPath(); ctx.arc(X(c.T), Y(c.Tp), 8, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.strokeStyle = '#eb6834'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#111'; ctx.fillText(String(i + 1), X(c.T), Y(c.Tp) + 0.5);
+      });
+      ctx.font = `12px ${FONT()}`;
+    },
+    hover(T, Tp) {
+      const iT = Math.round((T - R.Ts[0]) / dT), iP = Math.round((Tp - R.Tps[0]) / dP);
+      if (iT < 0 || iT >= R.Ts.length || iP < 0 || iP >= nP) return null;
+      const c = cell(iT, iP);
+      const why = [!c.okThk && `두께 ${fmt(c.mean)} nm`, !c.okNu && `불균일도 ${fmt(c.nu)} %`, !c.okTh && `θ ${fmt(c.thmin)}`].filter(Boolean);
+      return tip(c) + (why.length ? `<br><span style="color:var(--crit)">불만족: ${why.join(', ')}</span>` : '<br><span style="color:var(--good)">조건 만족</span>');
+    } });
+
+  const nSup = R.top.filter(c => c.support).length;
+  $('inv-notes').innerHTML = [
+    `추천은 <b>모델 예측</b>입니다. 증착 온도별 교차검증에서 모델의 예측 오차는 약 1.4 nm였으므로, 예측 차이가 이보다 작은 추천끼리는 실제로 구분되지 않을 수 있습니다.`,
+    `9점 맵이 측정된 조건은 현재 데이터에서 전구체 ${[...new Set(measuredConds(S.data).map(m => m[0]))].join(', ')} °C뿐입니다. 추천 ${R.top.length}개 중 ${nSup}개만 '측정 맵 인근'이고 나머지는 외삽이므로, 실제 공정에 쓰기 전에 확인 실험이 필요합니다.`,
+    `모델에서 전구체 온도와 dose는 '공급량'(증기압 × dose) 하나로만 작용합니다. 그래서 둘은 서로 대체할 수 있고, 증기압비는 피팅된 ΔH에 기반해 불확실성이 큽니다.`,
+    o.cycFree ? `사이클 수 조정은 ALD 선형 성장(두께 ∝ 사이클)을 가정합니다. 초기 핵생성 지연은 반영하지 않으며, 논문의 실제 사이클 수를 모르므로 배율로만 표시합니다.`
+              : `사이클 수는 논문 조건으로 고정했습니다. 이때 평균 두께는 포화 두께 H_sat(T), 즉 주로 증착 온도로 정해집니다. 실제 공정에서는 두께를 사이클 수로 맞추므로 "사이클 수 조정 허용"을 켜면 균일도 조건만으로 온도를 고를 수 있습니다.`,
+    o.region === '9pt' ? `평가 영역이 9-point라 웨이퍼 가장자리(중심에서 3 cm 바깥)는 반영되지 않습니다.` : `웨이퍼 전체 평가는 측정점이 없는 가장자리까지 외삽한 결과입니다.`,
+  ].map(t => `<li>${t}</li>`).join('');
+}
+
+// =================================================================== 시작
+buildParams(); buildJump(); setFloorDefault(); update();
+let rz = null; new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(update, 80); }).observe(document.querySelector('main'));
+window.__ald = { S, inverseDesign, fit, lotoCV, rmseOf, zFit, zern, makeDataset, MODELS, defaults };
+})();
+</script>
+</body>
+</html>
